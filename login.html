@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Chaos Community</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ---------- Blue + Cyan theme (baaki sab landing page jaisa) ---------- */
+    .logo { color: #00e5ff; text-shadow: 0 0 12px rgba(0, 229, 255, .6); }
+    .nav { border-bottom-color: rgba(0, 229, 255, .25); }
+    .links a:hover { color: #00e5ff; }
+    .tag { color: #3b82f6; }
+    .cursor { color: #00e5ff; }
+    .typing { color: #bcd7f5; }
+
+    .glitch { color: #00e5ff; text-shadow: 0 0 25px rgba(0, 229, 255, .6); }
+    .glitch::before { color: #3b82f6; }
+    .glitch::after { color: #7dd3fc; }
+    .glitch.small { font-size: clamp(2.2rem, 8vw, 4.5rem); }
+
+    .auth-wrap {
+      position: relative; z-index: 1;
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 90px 20px 30px; text-align: center;
+    }
+
+    /* Card: landing page ke cards jaisa glass look */
+    .auth-box {
+      width: 100%; max-width: 400px; margin-top: 10px;
+      padding: 30px 28px; border-radius: 16px;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(0, 229, 255, .35);
+      backdrop-filter: blur(8px);
+      animation: rise .7s ease;
+      transition: transform .3s, border-color .3s, box-shadow .3s;
+    }
+    .auth-box:hover {
+      transform: translateY(-6px);
+      border-color: #00e5ff;
+      box-shadow: 0 10px 40px rgba(0, 229, 255, .3);
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    #formTitle { color: #00e5ff; font-size: 1.5rem; margin-bottom: 20px; }
+
+    /* Inputs */
+    .field { position: relative; margin-bottom: 16px; }
+    .field input {
+      width: 100%; padding: 14px 16px; border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, .15);
+      background: rgba(0, 0, 0, .35); color: #fff; font-size: 1rem;
+      transition: border-color .25s, box-shadow .25s;
+    }
+    .field input::placeholder { color: #7f93ad; }
+    .field input:focus {
+      outline: none; border-color: #00e5ff;
+      box-shadow: 0 0 0 3px rgba(0, 229, 255, .2), 0 0 18px rgba(0, 229, 255, .3);
+    }
+    .eye { position: absolute; right: 14px; top: 14px; cursor: pointer; opacity: .7; user-select: none; }
+    .eye:hover { opacity: 1; }
+    #password { padding-right: 44px; }
+
+    /* Button: landing page ke "Join Now" jaisa, pulse ke saath */
+    .auth-box button {
+      width: 100%; padding: 15px; margin-top: 6px; border: none; cursor: pointer;
+      border-radius: 50px; color: #fff; font-weight: bold; font-size: 1.05rem;
+      background: linear-gradient(135deg, #00e5ff, #3b82f6);
+      box-shadow: 0 0 25px rgba(0, 229, 255, .5);
+      animation: pulseC 2s infinite;
+      transition: transform .2s;
+    }
+    .auth-box button:hover { transform: scale(1.05); }
+    .auth-box button:active { transform: scale(.97); }
+    @keyframes pulseC {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 229, 255, .4); }
+      50% { box-shadow: 0 0 45px rgba(59, 130, 246, .9); }
+    }
+
+    #msg { min-height: 1.5em; margin-top: 14px; font-size: .95rem; }
+    #msg.err { animation: shakeX .4s; }
+    @keyframes shakeX {
+      0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); }
+      50% { transform: translateX(8px); } 75% { transform: translateX(-4px); }
+    }
+    #toggleText { margin-top: 12px; color: #8aa0ba; }
+    #toggleText a { color: #00e5ff; text-decoration: none; font-weight: bold; }
+    #toggleText a:hover { text-shadow: 0 0 12px #00e5ff; }
+    .hint2 { margin-top: 18px; color: #6b7c92; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <div class="flash" id="flash"></div>
+
+  <nav class="nav">
+    <a href="index.html" class="logo">CHAOS 🔥</a>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="members.html">Members</a>
+    </div>
+  </nav>
+
+  <main class="auth-wrap">
+    <p class="tag">// access required</p>
+    <h1 class="glitch small" data-text="CHAOS ACCESS">CHAOS ACCESS</h1>
+    <p class="typing" style="margin:12px 0 18px;font-size:1.1rem;min-height:1.4em"><span id="typed"></span><span class="cursor">|</span></p>
+
+    <div class="auth-box" id="box">
+      <h2 id="formTitle"></h2>
+      <form id="authForm">
+        <div class="field">
+          <input type="text" id="name" placeholder="Tera naam" style="display:none">
+        </div>
+        <div class="field">
+          <input type="email" id="email" placeholder="Email" required>
+        </div>
+        <div class="field">
+          <input type="password" id="password" placeholder="Password (min 6 characters)" required>
+          <span class="eye" id="eye">👁️</span>
+        </div>
+        <button type="submit" id="submitBtn"></button>
+      </form>
+      <p id="msg"></p>
+      <p id="toggleText"></p>
+    </div>
+    <p class="hint2">💥 Card ke bahar click kar</p>
+  </main>
+
+  <script>
+    // ---------- Background: landing page jaisa dots network (cyan/blue) ----------
+    const canvas = document.getElementById("bg");
+    const ctx = canvas.getContext("2d");
+    let dots = [];
+    function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+    resize(); addEventListener("resize", resize);
+
+    for (let i = 0; i < 70; i++) {
+      dots.push({
+        x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+        r: Math.random() * 2 + 1,
+        vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6,
+      });
+    }
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      dots.forEach((d, i) => {
+        d.x += d.vx; d.y += d.vy;
+        if (d.x < 0 || d.x > canvas.width) d.vx *= -1;
+        if (d.y < 0 || d.y > canvas.height) d.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#00e5ff";
+        ctx.fill();
+        for (let j = i + 1; j < dots.length; j++) {
+          const o = dots[j];
+          const dist = Math.hypot(d.x - o.x, d.y - o.y);
+          if (dist < 120) {
+            ctx.strokeStyle = "rgba(59, 130, 246," + (1 - dist / 120) + ")";
+            ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(o.x, o.y); ctx.stroke();
+          }
+        }
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    // ---------- Typing effect ----------
+    const lines = ["Wapas aa gaya, soldier?", "Naam daal, entry le.", "Chaos tera intezaar kar raha hai."];
+    const typed = document.getElementById("typed");
+    let li = 0, ci = 0, del = false;
+    (function type() {
+      const t = lines[li];
+      typed.textContent = t.slice(0, ci);
+      if (!del && ci < t.length) ci++;
+      else if (!del) { del = true; return setTimeout(type, 1400); }
+      else if (ci > 0) ci--;
+      else { del = false; li = (li + 1) % lines.length; }
+      setTimeout(type, del ? 30 : 70);
+    })();
+
+    // ---------- Gunshot (card ke bahar click pe) ----------
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function gunSound() {
+      const len = audioCtx.sampleRate * 0.25;
+      const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      const n = audioCtx.createBufferSource();
+      n.buffer = buf;
+      const g = audioCtx.createGain(); g.gain.value = 0.5;
+      n.connect(g).connect(audioCtx.destination);
+      n.start();
+    }
+    addEventListener("click", (e) => {
+      if (e.target.closest(".auth-box, .nav, a")) return;
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      gunSound();
+      const flash = document.getElementById("flash");
+      flash.style.setProperty("--x", e.clientX + "px");
+      flash.style.setProperty("--y", e.clientY + "px");
+      flash.classList.add("on");
+      setTimeout(() => flash.classList.remove("on"), 60);
+      const hole = document.createElement("div");
+      hole.className = "hole";
+      hole.style.left = e.clientX + "px"; hole.style.top = e.clientY + "px";
+      document.body.appendChild(hole);
+      setTimeout(() => hole.remove(), 5000);
+      for (let i = 0; i < 10; i++) {
+        const s = document.createElement("div");
+        s.className = "spark";
+        s.style.left = e.clientX + "px"; s.style.top = e.clientY + "px";
+        s.style.setProperty("--dx", (Math.random() - 0.5) * 120 + "px");
+        s.style.setProperty("--dy", (Math.random() - 0.5) * 120 + "px");
+        document.body.appendChild(s);
+        setTimeout(() => s.remove(), 500);
+      }
+      document.body.classList.remove("shake");
+      void document.body.offsetWidth;
+      document.body.classList.add("shake");
+    });
+
+    // ---------- Password eye ----------
+    const pw = document.getElementById("password");
+    document.getElementById("eye").onclick = () => {
+      pw.type = pw.type === "password" ? "text" : "password";
+    };
+
+    // ---------- Error pe msg shake ----------
+    const msg = document.getElementById("msg");
+    new MutationObserver(() => {
+      msg.classList.remove("err");
+      if (msg.textContent && msg.textContent !== "Ruk ja..." && msg.style.color !== "rgb(74, 222, 128)") {
+        void msg.offsetWidth;
+        msg.classList.add("err");
+      }
+    }).observe(msg, { childList: true, characterData: true, subtree: true });
+  </script>
+  <script type="module" src="auth.js"></script>
+</body>
+</html>
+
