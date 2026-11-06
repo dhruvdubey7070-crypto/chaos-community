@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Chaos Community</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { cursor: default; }
+    #app { display: none; }
+
+    .wrap { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 120px 20px 70px; }
+
+    .hello { text-align: center; margin-bottom: 40px; }
+    .hello .tag { margin-bottom: 8px; }
+    .hello h1 { font-size: clamp(2rem, 7vw, 3.4rem); color: #fff; }
+    .hello h1 span {
+      background: linear-gradient(90deg, #ff2e63, #7b2ff7, #00e5ff);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hello p { color: #8b8ba7; margin-top: 10px; }
+
+    /* Stats */
+    .stats { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 44px; }
+    .stat {
+      min-width: 150px; padding: 14px 22px; border-radius: 14px; text-align: center;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(123,47,247,.4);
+    }
+    .stat b { display: block; font-size: 1.7rem; color: #ff2e63; }
+    .stat small { color: #8b8ba7; }
+
+    /* Teen bade cards */
+    .hub { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+    .tile {
+      position: relative; display: block; padding: 34px 26px; border-radius: 20px;
+      text-decoration: none; color: #fff; overflow: hidden;
+      background: rgba(12,12,22,.8); border: 1px solid rgba(255,46,99,.3);
+      backdrop-filter: blur(8px);
+      opacity: 0; animation: rise .6s forwards;
+      transition: transform .3s, box-shadow .3s, border-color .3s;
+    }
+    .tile:nth-child(1) { animation-delay: .1s; --c: #ffd166; }
+    .tile:nth-child(2) { animation-delay: .25s; --c: #ff2e63; }
+    .tile:nth-child(3) { animation-delay: .4s; --c: #00e5ff; }
+    @keyframes rise { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+
+    .tile::before {              /* hover pe rang bhar jata hai */
+      content: ""; position: absolute; inset: 0; z-index: 0; opacity: 0;
+      background: radial-gradient(circle at 50% 0%, var(--c), transparent 70%);
+      transition: opacity .35s;
+    }
+    .tile:hover { transform: translateY(-10px) scale(1.02); border-color: var(--c); box-shadow: 0 15px 50px color-mix(in srgb, var(--c) 45%, transparent); }
+    .tile:hover::before { opacity: .22; }
+    .tile > * { position: relative; z-index: 1; }
+
+    .icon { font-size: 3.4rem; margin-bottom: 14px; display: inline-block; animation: bob 3s ease-in-out infinite; }
+    .tile:nth-child(2) .icon { animation-delay: -1s; }
+    .tile:nth-child(3) .icon { animation-delay: -2s; }
+    @keyframes bob { 50% { transform: translateY(-8px) rotate(6deg); } }
+
+    .tile h2 { margin-bottom: 8px; color: var(--c); }
+    .tile p { color: #bbb; line-height: 1.55; margin-bottom: 18px; }
+    .go { font-weight: bold; letter-spacing: 1px; color: var(--c); }
+    .go::after { content: " →"; display: inline-block; transition: transform .25s; }
+    .tile:hover .go::after { transform: translateX(8px); }
+
+    .soon { pointer-events: auto; cursor: not-allowed; }
+    .soon:hover { transform: none; box-shadow: none; }
+    .soon:hover::before { opacity: 0; }
+    .soon .go::after { content: ""; }
+    .badge {
+      position: absolute; top: 16px; right: 16px; z-index: 2; padding: 4px 12px; border-radius: 50px;
+      font-size: .72rem; font-weight: bold; background: linear-gradient(135deg, #7b2ff7, #00e5ff);
+      animation: pulse 2s infinite;
+    }
+
+    /* Abhi ka top idea */
+    .topbox {
+      margin-top: 40px; padding: 20px 24px; border-radius: 16px; text-align: center;
+      background: rgba(255,209,102,.07); border: 1px solid rgba(255,209,102,.4); color: #cfcfe6;
+    }
+    .topbox b { color: #ffd166; }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <nav class="nav">
+    <a href="index.html" class="logo">CHAOS 🔥</a>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="members.html">Members</a>
+    </div>
+  </nav>
+
+  <div id="loading" class="status" style="text-align:center;color:#8b8ba7;padding-top:160px">Check ho raha hai... 🔐</div>
+
+  <main class="wrap" id="app">
+    <div class="hello">
+      <p class="tag">// dashboard</p>
+      <h1>Swagat hai, <span id="uname">...</span> 😎</h1>
+      <p>Kaha jaana hai? Teen raste hain, chun le.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="sMembers">-</b><small>👥 Members</small></div>
+      <div class="stat"><b id="sIdeas">-</b><small>💡 Ideas</small></div>
+      <div class="stat"><b id="sVotes">-</b><small>🔥 Total votes</small></div>
+    </div>
+
+    <div class="hub">
+      <a class="tile" href="ideas.html">
+        <div class="icon">💡</div>
+        <h2>Ideas</h2>
+        <p>Apna idea daal. "Hum ye banate hain" wali baat yahan likh.</p>
+        <span class="go">IDEA DAAL</span>
+      </a>
+
+      <a class="tile" href="vote.html">
+        <div class="icon">🗳️</div>
+        <h2>Voting</h2>
+        <p>Sabke ideas dekh, vote de aur comment kar. Sabse zyada vote wala jeetega.</p>
+        <span class="go">VOTE KAR</span>
+      </a>
+
+      <a class="tile" href="chat.html">
+        <div class="icon">💬</div>
+        <h2>Chat Room</h2>
+        <p>Real-time baat-cheet, sab members ke saath. Message bhej, turant dikhega.</p>
+        <span class="go">CHAT KAR</span>
+      </a>
+    </div>
+
+    <div class="topbox" id="topbox" style="display:none"></div>
+  </main>
+
+  <script type="module" src="auth.js"></script>
+  <script type="module">
+    import { auth, db } from "./auth.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    // Background dots
+    const canvas = document.getElementById("bg");
+    const ctx = canvas.getContext("2d");
+    function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+    resize(); addEventListener("resize", resize);
+    const dots = Array.from({ length: 55 }, () => ({
+      x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+      r: Math.random() * 2 + 1, vx: (Math.random() - .5) * .5, vy: (Math.random() - .5) * .5,
+    }));
+    (function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      dots.forEach((d, i) => {
+        d.x += d.vx; d.y += d.vy;
+        if (d.x < 0 || d.x > canvas.width) d.vx *= -1;
+        if (d.y < 0 || d.y > canvas.height) d.vy *= -1;
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#ff2e63"; ctx.fill();
+        for (let j = i + 1; j < dots.length; j++) {
+          const o = dots[j], dist = Math.hypot(d.x - o.x, d.y - o.y);
+          if (dist < 110) {
+            ctx.strokeStyle = "rgba(123,47,247," + (1 - dist / 110) + ")";
+            ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(o.x, o.y); ctx.stroke();
+          }
+        }
+      });
+      requestAnimationFrame(draw);
+    })();
+
+    // Count-up animation
+    function countTo(el, target) {
+      const start = Number(el.textContent) || 0;
+      const t0 = performance.now();
+      (function step(t) {
+        const p = Math.min((t - t0) / 600, 1);
+        el.textContent = Math.round(start + (target - start) * p);
+        if (p < 1) requestAnimationFrame(step);
+      })(t0);
+    }
+
+    // Login guard
+    let started = false;
+    onAuthStateChanged(auth, (user) => {
+      if (!user) { location.replace("login.html"); return; }
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      document.getElementById("uname").textContent = user.displayName || user.email.split("@")[0];
+      if (started) return;
+      started = true;
+
+      onSnapshot(collection(db, "members"), (s) => countTo(document.getElementById("sMembers"), s.size), () => {});
+
+      onSnapshot(collection(db, "ideas"), (s) => {
+        const ideas = s.docs.map((d) => d.data());
+        const votes = ideas.reduce((n, i) => n + (Array.isArray(i.voters) ? i.voters.length : 0), 0);
+        countTo(document.getElementById("sIdeas"), ideas.length);
+        countTo(document.getElementById("sVotes"), votes);
+
+        const box = document.getElementById("topbox");
+        const top = ideas
+          .filter((i) => Array.isArray(i.voters) && i.voters.length > 0)
+          .sort((a, b) => b.voters.length - a.voters.length)[0];
+        if (top) {
+          box.style.display = "block";
+          box.textContent = "";
+          const b = document.createElement("b");
+          b.textContent = "🏆 Abhi sabse aage: ";
+          box.append(b, document.createTextNode(top.title + " (" + top.voters.length + " votes)"));
+        } else {
+          box.style.display = "none";
+        }
+      }, () => {});
+    });
+  </script>
+</body>
+</html>

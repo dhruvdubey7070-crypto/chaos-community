@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Members - Chaos Community</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { cursor: default; }
+    .m-wrap { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 120px 20px 60px; }
+    .m-head { text-align: center; margin-bottom: 30px; }
+    .m-head h1 { font-size: clamp(2rem, 7vw, 3.5rem); color: #ff2e63; text-shadow: 0 0 25px rgba(255,46,99,.5); }
+    .count {
+      display: inline-block; margin-top: 12px; padding: 8px 20px; border-radius: 50px;
+      background: rgba(123, 47, 247, .2); border: 1px solid #7b2ff7; color: #cfcfe6;
+      animation: pulse 2s infinite;
+    }
+    .count b { color: #ff2e63; font-size: 1.2rem; }
+
+    .search {
+      display: block; width: 100%; max-width: 420px; margin: 24px auto 34px;
+      padding: 14px 20px; border-radius: 50px; border: 1.5px solid #2b2b3d;
+      background: #0d0d18; color: #fff; font-size: 1rem; transition: all .25s;
+    }
+    .search:focus { outline: none; border-color: #ff2e63; box-shadow: 0 0 20px rgba(255,46,99,.4); }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+    .member {
+      padding: 26px 18px; text-align: center; border-radius: 16px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,46,99,.25);
+      backdrop-filter: blur(6px);
+      opacity: 0; animation: rise .6s forwards;
+      transition: transform .3s, border-color .3s, box-shadow .3s;
+    }
+    .member:hover { transform: translateY(-8px) rotate(-1deg); border-color: #ff2e63; box-shadow: 0 10px 35px rgba(255,46,99,.35); }
+    @keyframes rise { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+
+    .avatar {
+      width: 70px; height: 70px; margin: 0 auto 14px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.9rem; font-weight: 900; color: #fff;
+      box-shadow: 0 0 20px rgba(123,47,247,.6);
+    }
+    .member h3 { color: #fff; margin-bottom: 6px; word-break: break-word; }
+    .member small { color: #8b8ba7; }
+    .badge { display: inline-block; margin-top: 10px; padding: 3px 12px; border-radius: 50px; font-size: .75rem;
+      background: linear-gradient(135deg, #ff2e63, #7b2ff7); }
+
+    .status { text-align: center; color: #8b8ba7; padding: 40px 0; }
+    .status.err { color: #ff2e63; }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <nav class="nav">
+    <a href="index.html" class="logo">CHAOS 🔥</a>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="members.html">Members</a>
+    </div>
+  </nav>
+
+  <main class="m-wrap">
+    <div class="m-head">
+      <h1>👥 Chaos Members</h1>
+      <span class="count"><b id="count">0</b> log ab tak jud chuke hain</span>
+    </div>
+
+    <input class="search" id="search" type="text" placeholder="🔍  Naam se dhundh...">
+
+    <div class="grid" id="grid"></div>
+    <p class="status" id="status">Members load ho rahe hain...</p>
+  </main>
+
+  <script type="module" src="auth.js"></script>
+  <script type="module">
+    import { db } from "./auth.js";
+    import {
+      collection, onSnapshot, query, orderBy,
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    // Background: halke floating dots
+    const canvas = document.getElementById("bg");
+    const ctx = canvas.getContext("2d");
+    function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+    resize(); addEventListener("resize", resize);
+    const dots = Array.from({ length: 50 }, () => ({
+      x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+      r: Math.random() * 2 + 1, vx: (Math.random() - .5) * .5, vy: (Math.random() - .5) * .5,
+    }));
+    (function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      dots.forEach((d) => {
+        d.x += d.vx; d.y += d.vy;
+        if (d.x < 0 || d.x > canvas.width) d.vx *= -1;
+        if (d.y < 0 || d.y > canvas.height) d.vy *= -1;
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,46,99,.7)"; ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    })();
+
+    // Members list
+    const grid = document.getElementById("grid");
+    const status = document.getElementById("status");
+    const countEl = document.getElementById("count");
+    const search = document.getElementById("search");
+    let members = [];
+
+    const colors = [
+      ["#ff2e63", "#7b2ff7"], ["#7b2ff7", "#00e5ff"], ["#ff8a00", "#ff2e63"],
+      ["#00e5ff", "#4ade80"], ["#f72585", "#b5179e"],
+    ];
+
+    function render() {
+      const q = search.value.trim().toLowerCase();
+      const list = members.filter((m) => m.name.toLowerCase().includes(q));
+      grid.innerHTML = "";
+      list.forEach((m, i) => {
+        const c = colors[m.name.charCodeAt(0) % colors.length];
+        const card = document.createElement("div");
+        card.className = "member";
+        card.style.animationDelay = i * 0.07 + "s";
+        const date = new Date(m.joinedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+        const av = document.createElement("div");
+        av.className = "avatar";
+        av.style.background = "linear-gradient(135deg," + c[0] + "," + c[1] + ")";
+        av.textContent = m.name.charAt(0).toUpperCase();
+
+        const h = document.createElement("h3");
+        h.textContent = m.name;          // textContent: koi HTML inject nahi kar sakta
+
+        const s = document.createElement("small");
+        s.textContent = "Joined " + date;
+
+        card.append(av, h, s);
+        if (m.num === 1) {
+          const b = document.createElement("span");
+          b.className = "badge"; b.textContent = "👑 Founder";
+          card.append(document.createElement("br"), b);
+        }
+        grid.appendChild(card);
+      });
+      status.textContent = list.length ? "" : (members.length ? "Koi nahi mila 😅" : "Abhi koi member nahi. Pehle tu signup kar! 🔥");
+      status.className = "status";
+    }
+
+    search.addEventListener("input", render);
+
+    onSnapshot(
+      query(collection(db, "members"), orderBy("joinedAt")),
+      (snap) => {
+        members = snap.docs.map((d, i) => ({ ...d.data(), num: i + 1 }));
+        countEl.textContent = members.length;
+        render();
+      },
+      (err) => {
+        status.className = "status err";
+        status.textContent = "Members load nahi hue (" + err.code + "). Firestore setup / rules check kar.";
+      }
+    );
+  </script>
+</body>
+</html>

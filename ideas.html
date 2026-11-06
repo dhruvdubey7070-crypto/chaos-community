@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ideas - Chaos Community</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { cursor: default; }
+    #app { display: none; }
+    .wrap { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 120px 20px 70px; }
+
+    .head { text-align: center; margin-bottom: 30px; }
+    .head h1 { font-size: clamp(2rem, 7vw, 3.2rem); color: #ffd166; text-shadow: 0 0 25px rgba(255,209,102,.5); }
+    .head p { color: #8b8ba7; margin-top: 8px; }
+
+    .form-box {
+      padding: 26px; border-radius: 18px; margin-bottom: 36px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,209,102,.45);
+      backdrop-filter: blur(6px); animation: rise .6s;
+    }
+    @keyframes rise { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+    .form-box h2 { color: #ffd166; margin-bottom: 16px; font-size: 1.2rem; }
+    .form-box input, .form-box textarea {
+      width: 100%; padding: 13px 16px; margin-bottom: 12px; border-radius: 10px;
+      border: 1.5px solid #2b2b3d; background: #0d0d18; color: #fff;
+      font-size: 1rem; font-family: inherit; resize: vertical; transition: all .25s;
+    }
+    .form-box input:focus, .form-box textarea:focus { outline: none; border-color: #ffd166; box-shadow: 0 0 18px rgba(255,209,102,.35); }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .counter { color: #666680; font-size: .85rem; }
+    .post-btn {
+      padding: 12px 30px; border: none; border-radius: 50px; cursor: pointer;
+      background: linear-gradient(135deg, #ffd166, #ff2e63); color: #111; font-weight: 800; letter-spacing: 1px;
+      box-shadow: 0 0 20px rgba(255,209,102,.4); transition: transform .2s;
+    }
+    .post-btn:hover { transform: scale(1.06); }
+    .post-btn:disabled { opacity: .5; cursor: wait; }
+    #formMsg { margin-top: 12px; min-height: 1.2em; font-size: .92rem; color: #ff2e63; }
+    #formMsg a { color: #00e5ff; font-weight: bold; }
+
+    .section-title { color: #cfcfe6; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .mine {
+      display: flex; justify-content: space-between; gap: 14px; align-items: center;
+      padding: 16px 18px; margin-bottom: 12px; border-radius: 14px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,46,99,.22);
+      opacity: 0; animation: rise .5s forwards;
+    }
+    .mine h3 { color: #fff; font-size: 1rem; word-break: break-word; }
+    .mine small { color: #8b8ba7; }
+    .votes { white-space: nowrap; color: #ff2e63; font-weight: bold; }
+    .del { background: none; border: none; color: #ff2e63; cursor: pointer; font-size: .85rem; }
+    .del:hover { text-decoration: underline; }
+
+    .gobtn {
+      display: block; text-align: center; margin-top: 26px; padding: 14px; border-radius: 50px;
+      background: linear-gradient(135deg, #ff2e63, #7b2ff7); color: #fff; text-decoration: none; font-weight: bold;
+      box-shadow: 0 0 25px rgba(255,46,99,.45); animation: pulse 2s infinite;
+    }
+    .status { text-align: center; color: #8b8ba7; padding: 24px 0; }
+    .status.err { color: #ff2e63; }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <nav class="nav">
+    <a href="index.html" class="logo">CHAOS 🔥</a>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="members.html">Members</a>
+    </div>
+  </nav>
+
+  <div id="loading" class="status" style="padding-top:160px">Check ho raha hai... 🔐</div>
+
+  <main class="wrap" id="app">
+    <div class="head">
+      <h1>💡 Naya Idea</h1>
+      <p id="welcome"></p>
+      <p>Jo idea tu yahan daalega, wo apne aap <b style="color:#ff2e63">Voting page</b> pe sabko dikhega.</p>
+    </div>
+
+    <div class="form-box">
+      <h2>✍️ Idea likh</h2>
+      <input id="title" type="text" maxlength="100" placeholder="Idea ka title (jaise: Chat room banate hain)">
+      <textarea id="desc" rows="4" maxlength="300" placeholder="Thoda detail me bata ki kya karna hai (optional)"></textarea>
+      <div class="row">
+        <span class="counter" id="counter">0 / 300</span>
+        <button class="post-btn" id="postBtn">Post kar 🚀</button>
+      </div>
+      <p id="formMsg"></p>
+    </div>
+
+    <div class="section-title">
+      <h2>📌 Tere daale hue ideas</h2>
+      <span class="counter" id="total"></span>
+    </div>
+    <div id="list"></div>
+    <p class="status" id="status">Load ho raha hai...</p>
+
+    <a class="gobtn" href="vote.html">🗳️ Sabke ideas dekh aur vote de →</a>
+  </main>
+
+  <script type="module" src="auth.js"></script>
+  <script type="module">
+    import { auth, db } from "./auth.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import {
+      collection, addDoc, onSnapshot, query, where, doc, deleteDoc,
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    // Background dots
+    const canvas = document.getElementById("bg");
+    const ctx = canvas.getContext("2d");
+    function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+    resize(); addEventListener("resize", resize);
+    const dots = Array.from({ length: 50 }, () => ({
+      x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+      r: Math.random() * 2 + 1, vx: (Math.random() - .5) * .5, vy: (Math.random() - .5) * .5,
+    }));
+    (function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      dots.forEach((d) => {
+        d.x += d.vx; d.y += d.vy;
+        if (d.x < 0 || d.x > canvas.width) d.vx *= -1;
+        if (d.y < 0 || d.y > canvas.height) d.vy *= -1;
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,209,102,.7)"; ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    })();
+
+    // Login guard
+    let me = null, started = false;
+    onAuthStateChanged(auth, (user) => {
+      if (!user) { location.replace("login.html"); return; }
+      me = user;
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      document.getElementById("welcome").textContent = "Swagat hai, " + (user.displayName || user.email.split("@")[0]) + " 😎";
+      if (!started) { started = true; start(); }
+    });
+
+    function start() {
+      const titleEl = document.getElementById("title");
+      const descEl = document.getElementById("desc");
+      const postBtn = document.getElementById("postBtn");
+      const formMsg = document.getElementById("formMsg");
+      const list = document.getElementById("list");
+      const status = document.getElementById("status");
+      const total = document.getElementById("total");
+
+      descEl.addEventListener("input", () => {
+        document.getElementById("counter").textContent = descEl.value.length + " / 300";
+      });
+
+      postBtn.addEventListener("click", async () => {
+        const title = titleEl.value.trim();
+        const desc = descEl.value.trim();
+        formMsg.style.color = "#ff2e63";
+        formMsg.textContent = "";
+        if (title.length < 3) { formMsg.textContent = "Title kam se kam 3 akshar ka rakh."; return; }
+        postBtn.disabled = true;
+        formMsg.textContent = "Post ho raha hai...";
+        try {
+          await addDoc(collection(db, "ideas"), {
+            title, desc,
+            authorId: me.uid,
+            authorName: me.displayName || me.email.split("@")[0],
+            createdAt: Date.now(),
+            voters: [],
+          });
+          titleEl.value = ""; descEl.value = "";
+          document.getElementById("counter").textContent = "0 / 300";
+          formMsg.style.color = "#4ade80";
+          formMsg.textContent = "Idea post ho gaya! 🎉 Ab ye ";
+          const a = document.createElement("a");
+          a.href = "vote.html"; a.textContent = "Voting page";
+          formMsg.append(a, document.createTextNode(" pe sabko dikh raha hai."));
+        } catch (err) {
+          formMsg.textContent = "Post nahi hua (" + err.code + "). Firestore rules check kar.";
+        }
+        postBtn.disabled = false;
+      });
+
+      // Sirf mere ideas
+      onSnapshot(
+        query(collection(db, "ideas"), where("authorId", "==", me.uid)),
+        (snap) => {
+          const mine = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => b.createdAt - a.createdAt);
+          list.innerHTML = "";
+          total.textContent = mine.length + " ideas";
+          mine.forEach((i, n) => {
+            const row = document.createElement("div");
+            row.className = "mine";
+            row.style.animationDelay = Math.min(n, 8) * 0.06 + "s";
+
+            const left = document.createElement("div");
+            const h = document.createElement("h3"); h.textContent = i.title;
+            const s = document.createElement("small");
+            s.textContent = new Date(i.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+            left.append(h, s);
+
+            const right = document.createElement("div");
+            right.style.textAlign = "right";
+            const v = document.createElement("div"); v.className = "votes";
+            v.textContent = "🔥 " + (Array.isArray(i.voters) ? i.voters.length : 0);
+            const del = document.createElement("button"); del.className = "del"; del.textContent = "🗑️ delete";
+            del.onclick = async () => {
+              if (confirm("Ye idea delete kar du?")) {
+                try { await deleteDoc(doc(db, "ideas", i.id)); } catch (e) { alert("Delete nahi hua (" + e.code + ")"); }
+              }
+            };
+            right.append(v, del);
+            row.append(left, right);
+            list.append(row);
+          });
+          status.className = "status";
+          status.textContent = mine.length ? "" : "Tune abhi koi idea nahi daala. Upar se daal! 💡";
+        },
+        (err) => {
+          status.className = "status err";
+          status.textContent = "Load nahi hua (" + err.code + "). Firestore rules check kar.";
+        }
+      );
+    }
+  </script>
+</body>
+</html>

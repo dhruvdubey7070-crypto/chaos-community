@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voting - Chaos Community</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { cursor: default; }
+    #app { display: none; }
+    .wrap { position: relative; z-index: 1; max-width: 820px; margin: 0 auto; padding: 120px 20px 70px; }
+
+    .head { text-align: center; margin-bottom: 30px; }
+    .head h1 { font-size: clamp(2rem, 7vw, 3.2rem); color: #ff2e63; text-shadow: 0 0 25px rgba(255,46,99,.5); }
+    .head p { color: #8b8ba7; margin-top: 8px; }
+    .toprow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+    .counter { color: #8b8ba7; font-size: .9rem; }
+    .addbtn {
+      padding: 10px 22px; border-radius: 50px; text-decoration: none; font-weight: bold; color: #111;
+      background: linear-gradient(135deg, #ffd166, #ff2e63); box-shadow: 0 0 18px rgba(255,209,102,.4);
+      transition: transform .2s;
+    }
+    .addbtn:hover { transform: scale(1.06); }
+
+    .idea {
+      padding: 20px; margin-bottom: 18px; border-radius: 16px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,46,99,.22);
+      backdrop-filter: blur(6px); opacity: 0; animation: rise .5s forwards;
+      transition: border-color .3s, box-shadow .3s;
+    }
+    .idea:hover { border-color: #ff2e63; box-shadow: 0 8px 30px rgba(255,46,99,.22); }
+    .idea.top { border-color: #ffd166; box-shadow: 0 0 30px rgba(255,209,102,.3); }
+    @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+
+    .main { display: flex; gap: 18px; }
+    .vote {
+      min-width: 68px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 14px; border: 2px solid #2b2b3d; background: #0d0d18; color: #cfcfe6;
+      cursor: pointer; padding: 10px 6px; font-family: inherit; transition: all .25s;
+    }
+    .vote:hover { border-color: #ff2e63; transform: scale(1.06); }
+    .vote .fire { font-size: 1.5rem; filter: grayscale(1); transition: filter .2s; }
+    .vote b { font-size: 1.2rem; }
+    .vote.voted { border-color: #ff2e63; background: rgba(255,46,99,.15); box-shadow: 0 0 20px rgba(255,46,99,.5); }
+    .vote.voted .fire { filter: none; }
+    .vote.bump { animation: bump .35s; }
+    @keyframes bump { 50% { transform: scale(1.3); } }
+
+    .body { flex: 1; min-width: 0; }
+    .body h3 { color: #fff; margin-bottom: 6px; word-break: break-word; }
+    .body p { color: #bbb; line-height: 1.55; word-break: break-word; white-space: pre-wrap; }
+    .meta { margin-top: 10px; font-size: .8rem; color: #7a7a96; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+    .crown { color: #ffd166; font-weight: bold; }
+    .cbtn {
+      background: rgba(0,229,255,.1); border: 1px solid rgba(0,229,255,.5); color: #00e5ff;
+      padding: 4px 14px; border-radius: 50px; cursor: pointer; font-size: .8rem; transition: all .2s;
+    }
+    .cbtn:hover, .cbtn.on { background: rgba(0,229,255,.28); }
+
+    /* Comments */
+    .comments { margin-top: 16px; padding-top: 14px; border-top: 1px dashed #2b2b3d; animation: rise .35s; }
+    .c { margin-bottom: 10px; padding: 9px 13px; border-radius: 12px; background: #12121e; border: 1px solid #23233a; }
+    .c .cw { font-size: .75rem; font-weight: bold; color: #7b2ff7; margin-bottom: 3px; display: flex; justify-content: space-between; }
+    .c .ct { color: #dcdcf0; word-break: break-word; white-space: pre-wrap; font-size: .95rem; }
+    .c .cd { background: none; border: none; color: #ff2e63; cursor: pointer; font-size: .72rem; }
+    .cform { display: flex; gap: 8px; margin-top: 10px; }
+    .cform input {
+      flex: 1; padding: 10px 16px; border-radius: 50px; border: 1.5px solid #2b2b3d;
+      background: #0d0d18; color: #fff; font-size: .95rem;
+    }
+    .cform input:focus { outline: none; border-color: #00e5ff; box-shadow: 0 0 14px rgba(0,229,255,.3); }
+    .cform button {
+      padding: 0 20px; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; color: #fff;
+      background: linear-gradient(135deg, #00e5ff, #7b2ff7);
+    }
+    .nocomm { color: #666680; font-size: .88rem; padding: 4px 0 8px; }
+
+    .status { text-align: center; color: #8b8ba7; padding: 30px 0; }
+    .status.err { color: #ff2e63; }
+    @media (max-width: 520px) { .main { flex-direction: column; } .vote { flex-direction: row; gap: 10px; } }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <nav class="nav">
+    <a href="index.html" class="logo">CHAOS 🔥</a>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="members.html">Members</a>
+    </div>
+  </nav>
+
+  <div id="loading" class="status" style="padding-top:160px">Check ho raha hai... 🔐</div>
+
+  <main class="wrap" id="app">
+    <div class="head">
+      <h1>🗳️ Voting</h1>
+      <p>Sabke ideas yahan hain. Vote de, comment kar. <b style="color:#ffd166">Sabse zyada vote wala idea agla kaam banega.</b></p>
+    </div>
+
+    <div class="toprow">
+      <span class="counter" id="total"></span>
+      <a class="addbtn" href="ideas.html">💡 Naya idea daal</a>
+    </div>
+
+    <div id="list"></div>
+    <p class="status" id="status">Ideas load ho rahe hain...</p>
+  </main>
+
+  <script type="module" src="auth.js"></script>
+  <script type="module">
+    import { auth, db } from "./auth.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import {
+      collection, addDoc, onSnapshot, query, orderBy,
+      doc, updateDoc, deleteDoc, arrayUnion, arrayRemove,
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    // Background dots
+    const canvas = document.getElementById("bg");
+    const ctx = canvas.getContext("2d");
+    function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+    resize(); addEventListener("resize", resize);
+    const dots = Array.from({ length: 50 }, () => ({
+      x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+      r: Math.random() * 2 + 1, vx: (Math.random() - .5) * .5, vy: (Math.random() - .5) * .5,
+    }));
+    (function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      dots.forEach((d) => {
+        d.x += d.vx; d.y += d.vy;
+        if (d.x < 0 || d.x > canvas.width) d.vx *= -1;
+        if (d.y < 0 || d.y > canvas.height) d.vy *= -1;
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,46,99,.7)"; ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    })();
+
+    // Login guard
+    let me = null, started = false;
+    onAuthStateChanged(auth, (user) => {
+      if (!user) { location.replace("login.html"); return; }
+      me = user;
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      if (!started) { started = true; start(); }
+    });
+
+    function start() {
+      const list = document.getElementById("list");
+      const status = document.getElementById("status");
+      const total = document.getElementById("total");
+
+      let ideas = [];
+      const openIds = new Set();   // jin ideas ke comments khule hain
+      const cache = {};            // ideaId -> comments array
+      const unsubs = {};           // ideaId -> comments listener
+      const drafts = {};           // ideaId -> adhoora comment text
+
+      function listenComments(id) {
+        if (unsubs[id]) return;
+        unsubs[id] = onSnapshot(
+          query(collection(db, "ideas", id, "comments"), orderBy("createdAt")),
+          (snap) => { cache[id] = snap.docs.map((d) => ({ id: d.id, ...d.data() })); render(); },
+          (err) => { cache[id] = { error: err.code }; render(); }
+        );
+      }
+
+      function commentsBox(idea) {
+        const box = document.createElement("div");
+        box.className = "comments";
+        const data = cache[idea.id];
+
+        if (!data) {
+          const l = document.createElement("p"); l.className = "nocomm"; l.textContent = "Comments load ho rahe hain...";
+          box.append(l);
+        } else if (data.error) {
+          const l = document.createElement("p"); l.className = "nocomm"; l.style.color = "#ff2e63";
+          l.textContent = "Comments load nahi hue (" + data.error + "). Firestore rules check kar.";
+          box.append(l);
+        } else {
+          if (!data.length) {
+            const l = document.createElement("p"); l.className = "nocomm"; l.textContent = "Abhi koi comment nahi. Pehla tu kar! 💬";
+            box.append(l);
+          }
+          data.forEach((c) => {
+            const row = document.createElement("div"); row.className = "c";
+            const w = document.createElement("div"); w.className = "cw";
+            const n = document.createElement("span"); n.textContent = c.name;
+            w.append(n);
+            if (c.uid === me.uid) {
+              const d = document.createElement("button"); d.className = "cd"; d.textContent = "delete";
+              d.onclick = async () => {
+                try { await deleteDoc(doc(db, "ideas", idea.id, "comments", c.id)); }
+                catch (e) { alert("Delete nahi hua (" + e.code + ")"); }
+              };
+              w.append(d);
+            }
+            const t = document.createElement("div"); t.className = "ct"; t.textContent = c.text;
+            row.append(w, t);
+            box.append(row);
+          });
+        }
+
+        // Comment likhne ka form
+        const form = document.createElement("form");
+        form.className = "cform";
+        const input = document.createElement("input");
+        input.type = "text"; input.maxLength = 300; input.placeholder = "Comment likh...";
+        input.dataset.idea = idea.id;
+        input.value = drafts[idea.id] || "";
+        input.addEventListener("input", () => { drafts[idea.id] = input.value; });
+        const btn = document.createElement("button"); btn.type = "submit"; btn.textContent = "Bhej";
+        form.append(input, btn);
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const text = input.value.trim();
+          if (!text) return;
+          btn.disabled = true;
+          try {
+            await addDoc(collection(db, "ideas", idea.id, "comments"), {
+              text, uid: me.uid,
+              name: me.displayName || me.email.split("@")[0],
+              createdAt: Date.now(),
+            });
+            drafts[idea.id] = ""; input.value = "";
+          } catch (err) { alert("Comment nahi gaya (" + err.code + ")"); }
+          btn.disabled = false;
+        });
+        box.append(form);
+        return box;
+      }
+
+      function render() {
+        // Jo input chal raha tha uska focus yaad rakho
+        const active = document.activeElement;
+        const focusId = active && active.dataset ? active.dataset.idea : null;
+        const caret = focusId ? active.selectionStart : null;
+
+        const sorted = [...ideas].sort(
+          (a, b) => b.voters.length - a.voters.length || b.createdAt - a.createdAt
+        );
+        list.innerHTML = "";
+        total.textContent = ideas.length + " ideas";
+
+        sorted.forEach((idea, i) => {
+          const voted = idea.voters.includes(me.uid);
+          const isTop = i === 0 && idea.voters.length > 0;
+          const isOpen = openIds.has(idea.id);
+
+          const card = document.createElement("div");
+          card.className = "idea" + (isTop ? " top" : "");
+          card.style.animationDelay = Math.min(i, 8) * 0.05 + "s";
+
+          const main = document.createElement("div"); main.className = "main";
+
+          const vote = document.createElement("button");
+          vote.className = "vote" + (voted ? " voted" : "");
+          const fire = document.createElement("span"); fire.className = "fire"; fire.textContent = "🔥";
+          const cnt = document.createElement("b"); cnt.textContent = idea.voters.length;
+          vote.append(fire, cnt);
+          vote.onclick = async () => {
+            vote.classList.add("bump");
+            try {
+              await updateDoc(doc(db, "ideas", idea.id), {
+                voters: voted ? arrayRemove(me.uid) : arrayUnion(me.uid),
+              });
+            } catch (err) { alert("Vote nahi gaya (" + err.code + ")"); }
+          };
+
+          const body = document.createElement("div"); body.className = "body";
+          const h = document.createElement("h3"); h.textContent = idea.title;
+          body.append(h);
+          if (idea.desc) { const p = document.createElement("p"); p.textContent = idea.desc; body.append(p); }
+
+          const meta = document.createElement("div"); meta.className = "meta";
+          if (isTop) { const c = document.createElement("span"); c.className = "crown"; c.textContent = "🏆 Abhi sabse aage"; meta.append(c); }
+          const by = document.createElement("span"); by.textContent = "by " + idea.authorName; meta.append(by);
+          const when = document.createElement("span");
+          when.textContent = new Date(idea.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+          meta.append(when);
+
+          const cb = document.createElement("button");
+          cb.className = "cbtn" + (isOpen ? " on" : "");
+          const loaded = Array.isArray(cache[idea.id]) ? " (" + cache[idea.id].length + ")" : "";
+          cb.textContent = "💬 Comments" + loaded;
+          cb.onclick = () => {
+            if (openIds.has(idea.id)) openIds.delete(idea.id);
+            else { openIds.add(idea.id); listenComments(idea.id); }
+            render();
+          };
+          meta.append(cb);
+          body.append(meta);
+
+          main.append(vote, body);
+          card.append(main);
+          if (isOpen) card.append(commentsBox(idea));
+          list.appendChild(card);
+        });
+
+        status.className = "status";
+        status.textContent = ideas.length ? "" : "Abhi koi idea nahi. Pehla idea tu daal! 💡";
+
+        // Focus wapas lagao
+        if (focusId) {
+          const el = list.querySelector('input[data-idea="' + focusId + '"]');
+          if (el) { el.focus(); try { el.setSelectionRange(caret, caret); } catch (e) {} }
+        }
+      }
+
+      onSnapshot(
+        query(collection(db, "ideas"), orderBy("createdAt", "desc")),
+        (snap) => {
+          ideas = snap.docs.map((d) => {
+            const x = d.data();
+            return { id: d.id, ...x, voters: Array.isArray(x.voters) ? x.voters : [] };
+          });
+          // Delete ho chuke ideas ke listener band karo
+          const ids = new Set(ideas.map((i) => i.id));
+          Object.keys(unsubs).forEach((id) => {
+            if (!ids.has(id)) { unsubs[id](); delete unsubs[id]; openIds.delete(id); delete cache[id]; }
+          });
+          render();
+        },
+        (err) => {
+          status.className = "status err";
+          status.textContent = "Ideas load nahi hue (" + err.code + "). Firestore rules check kar.";
+        }
+      );
+    }
+  </script>
+</body>
+</html>

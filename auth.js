@@ -7,6 +7,11 @@ import {
   updateProfile,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  setDoc,
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDXu3YgEiqnITmHMxjWp8XjxDXl1258qh8",
@@ -19,10 +24,29 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-// ---------- Navbar: Login / Logout link (har page pe apne aap lagta hai) ----------
+// ---------- Member ko Firestore me save karna (Members page ke liye) ----------
+async function saveMember(user, nameOverride) {
+  try {
+    const name = nameOverride || user.displayName || user.email.split("@")[0];
+    await setDoc(
+      doc(db, "members", user.uid),
+      {
+        name: name,
+        joinedAt: new Date(user.metadata.creationTime).getTime(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn("Member save nahi hua:", err.code);
+  }
+}
+
+// ---------- Navbar: Ideas (sirf login ke baad) + Login/Logout ----------
 const links = document.querySelector(".links");
 let authLink = null;
+let ideasLink = null;
 if (links) {
   authLink = document.createElement("a");
   authLink.href = "login.html";
@@ -31,8 +55,17 @@ if (links) {
 }
 
 onAuthStateChanged(auth, (user) => {
+  if (user) saveMember(user);
   if (!authLink) return;
+
   if (user) {
+    // Dashboard link sirf login hone par dikhta hai
+    if (!ideasLink) {
+      ideasLink = document.createElement("a");
+      ideasLink.href = "dashboard.html";
+      ideasLink.textContent = "Dashboard 🏠";
+      links.insertBefore(ideasLink, authLink);
+    }
     const name = user.displayName || user.email.split("@")[0];
     authLink.textContent = "Logout (" + name + ")";
     authLink.href = "#";
@@ -42,6 +75,7 @@ onAuthStateChanged(auth, (user) => {
       location.href = "index.html";
     };
   } else {
+    if (ideasLink) { ideasLink.remove(); ideasLink = null; }
     authLink.textContent = "Login";
     authLink.href = "login.html";
     authLink.onclick = null;
@@ -84,6 +118,7 @@ if (form) {
       "auth/user-not-found": "Ye account nahi mila. Pehle signup kar.",
       "auth/wrong-password": "Password galat hai.",
       "auth/too-many-requests": "Bahut try ho gaye, thodi der baad aa.",
+      "auth/operation-not-allowed": "Firebase me Email/Password on nahi hai.",
     };
     return map[code] || "Kuch gadbad hui: " + code;
   }
@@ -98,13 +133,16 @@ if (form) {
     try {
       if (isSignup) {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(cred.user, { displayName: nameInput.value.trim() });
+        const name = nameInput.value.trim();
+        await updateProfile(cred.user, { displayName: name });
+        await saveMember(cred.user, name);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
       msg.style.color = "#4ade80";
       msg.textContent = "Done! Redirect ho raha hai...";
-      setTimeout(() => (location.href = "index.html"), 800);
+      // Login ke baad seedha Dashboard
+      setTimeout(() => (location.href = "dashboard.html"), 800);
     } catch (err) {
       msg.textContent = friendlyError(err.code);
     }
